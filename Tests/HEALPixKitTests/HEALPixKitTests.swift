@@ -192,6 +192,56 @@ struct HEALPixKitTests {
     }
 
     // ----------------------------------------------------------------
+    // MARK: Cone queries
+    // ----------------------------------------------------------------
+
+    @Test("pixels(inConeAround:) contains the centre pixel")
+    func coneQueryContainsCentre() {
+        let coord  = AngularCoordinate(theta: .pi / 2, phi: 1.0)
+        let centre = ring64.pixel(at: coord)
+        let result = ring64.pixels(inConeAround: coord, radius: 0.1)
+        #expect(result.contains(centre))
+    }
+
+    @Test("pixels(inConeAround:) returns more than one pixel for non-zero radius")
+    func coneQueryReturnsMultiplePixels() {
+        let coord  = AngularCoordinate(theta: .pi / 2, phi: 1.0)
+        let result = ring64.pixels(inConeAround: coord, radius: 0.1)
+        #expect(result.count > 1)
+    }
+
+    @Test("inclusive cone returns >= exact cone")
+    func inclusiveConeIsSupersetOfExact() {
+        let coord    = AngularCoordinate(theta: .pi / 2, phi: 2.0)
+        let exact    = Set(ring64.pixels(inConeAround: coord, radius: 0.05))
+        let inclusive = Set(ring64.pixels(inConeAround: coord, radius: 0.05, inclusive: true))
+        #expect(inclusive.isSuperset(of: exact))
+    }
+
+    @Test("NESTED cone returns same sky coverage as RING cone")
+    func coneQueryRingAndNestedConsistent() {
+        let coord    = AngularCoordinate(theta: 1.0, phi: 3.0)
+        let radius   = 0.08
+
+        // Get RING pixels, convert to NESTED
+        let ringPixels   = Set(ring64.pixels(inConeAround: coord, radius: radius))
+        let asNested     = Set(ringPixels.map { ring64.convert(pixel: $0, to: .nested) })
+
+        // Get NESTED pixels directly
+        let nestedPixels = Set(nested64.pixels(inConeAround: coord, radius: radius))
+
+        #expect(asNested == nestedPixels)
+    }
+
+    @Test("maxPixelRadius is positive and decreases with resolution")
+    func maxPixelRadiusDecreases() {
+        let coarse = HEALPix(resolution: .nside32,  scheme: .ring).maxPixelRadius
+        let fine   = HEALPix(resolution: .nside128, scheme: .ring).maxPixelRadius
+        #expect(coarse > fine)
+        #expect(fine > 0)
+    }
+
+    // ----------------------------------------------------------------
     // MARK: HEALPix properties
     // ----------------------------------------------------------------
 

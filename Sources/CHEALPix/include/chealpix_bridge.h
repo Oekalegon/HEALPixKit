@@ -57,6 +57,39 @@ void ring2nest(long nside, long ipring, long *ipnest);
 long nside2npix(long nside);
 long npix2nside(long npix);
 
+/* ------------------------------------------------------------------ */
+/*  Cone / disc queries                                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Return the pixel indices whose *centres* lie within `radius_rad` of the
+ * direction (theta, phi).  The result array is heap-allocated; the caller
+ * must free it with healpix_free_pixels().
+ *
+ * @param pixels_out  set to a malloc'd array of `long` pixel indices
+ * @return            number of pixels in the array
+ */
+long query_disc_ring(long nside, double theta, double phi,
+                     double radius_rad, long **pixels_out);
+long query_disc_nest(long nside, double theta, double phi,
+                     double radius_rad, long **pixels_out);
+
+/**
+ * Like query_disc_*, but also includes pixels that *overlap* the disc
+ * boundary (conservative — may return a few extra pixels).
+ */
+long query_disc_inclusive_ring(long nside, double theta, double phi,
+                                double radius_rad, long **pixels_out);
+long query_disc_inclusive_nest(long nside, double theta, double phi,
+                                double radius_rad, long **pixels_out);
+
+/** Free a pixel array returned by any query_disc_* function. */
+void healpix_free_pixels(long *pixels);
+
+/** Maximum angular distance (radians) between a pixel centre and any of its
+ *  corners.  Add this to a search radius to get inclusive coverage. */
+double healpix_max_pixrad(long nside);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

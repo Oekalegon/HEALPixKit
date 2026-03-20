@@ -145,6 +145,50 @@ public struct HEALPix: Sendable, Equatable, Hashable, CustomStringConvertible {
         return Int64(result)
     }
 
+    // MARK: - Cone / disc queries
+
+    /// Maximum angular distance (in radians) between any pixel centre and its
+    /// corners for this grid's resolution.
+    ///
+    /// Add this to a search radius before calling ``pixels(inConeAround:radius:inclusive:)``
+    /// when you need to guarantee that every overlapping pixel is returned.
+    public var maxPixelRadius: Double {
+        healpix_max_pixrad(Int(resolution.nside))
+    }
+
+    /// Return the indices of all pixels whose **centres** lie within `radius`
+    /// radians of `coordinate`.
+    ///
+    /// ```swift
+    /// let grid   = HEALPix(resolution: .nside64, scheme: .ring)
+    /// let centre = AngularCoordinate(rightAscension: ra, declination: dec)
+    /// let pixels = grid.pixels(inConeAround: centre, radius: 0.1)  // ~5.7°
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - coordinate: Centre of the search cone.
+    ///   - radius:     Angular radius in radians.
+    ///   - inclusive:  If `true`, also includes pixels that partially overlap
+    ///                 the disc boundary (conservative — may return a few extra
+    ///                 pixels near the edge). Default is `false`.
+    /// - Returns: Array of pixel indices, sorted in the grid's ordering scheme.
+    public func pixels(inConeAround coordinate: AngularCoordinate,
+                       radius: Double,
+                       inclusive: Bool = false) -> [Int64] {
+        var ptr: UnsafeMutablePointer<Int>? = nil
+        let n = Int(resolution.nside)
+        let count: Int
+        switch (scheme, inclusive) {
+        case (.ring,   false): count = Int(query_disc_ring(n, coordinate.theta, coordinate.phi, radius, &ptr))
+        case (.nested, false): count = Int(query_disc_nest(n, coordinate.theta, coordinate.phi, radius, &ptr))
+        case (.ring,   true):  count = Int(query_disc_inclusive_ring(n, coordinate.theta, coordinate.phi, radius, &ptr))
+        case (.nested, true):  count = Int(query_disc_inclusive_nest(n, coordinate.theta, coordinate.phi, radius, &ptr))
+        }
+        defer { healpix_free_pixels(ptr) }
+        guard let p = ptr, count > 0 else { return [] }
+        return Array(UnsafeBufferPointer(start: p, count: count)).map(Int64.init)
+    }
+
     // MARK: CustomStringConvertible
 
     public var description: String { "HEALPix(\(resolution), \(scheme))" }

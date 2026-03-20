@@ -18,6 +18,9 @@
 
 #include "include/chealpix_bridge.h"
 
+#include <cstdlib>          // malloc, free
+#include <vector>
+
 // Use the 64-bit pixel-index variant throughout so nside up to 2^29 works.
 // healpix_cxx defines int64 in datatypes.h (included transitively).
 using HP = T_Healpix_Base<int64>;
@@ -112,6 +115,59 @@ long npix2nside(long npix) {
     if (npix <= 0) return -1L;
     long nside = static_cast<long>(sqrt(static_cast<double>(npix) / 12.0));
     return (12L * nside * nside == npix) ? nside : -1L;
+}
+
+// ------------------------------------------------------------------ //
+// Cone / disc queries                                                 //
+// ------------------------------------------------------------------ //
+
+// Helper: copy a vector<int64> into a malloc'd long array.
+static long fill_pixel_output(const std::vector<int64> &v, long **out) {
+    long count = static_cast<long>(v.size());
+    if (count == 0) { *out = nullptr; return 0; }
+    *out = static_cast<long*>(malloc(static_cast<size_t>(count) * sizeof(long)));
+    for (long i = 0; i < count; i++) (*out)[i] = static_cast<long>(v[i]);
+    return count;
+}
+
+long query_disc_ring(long nside, double theta, double phi,
+                     double radius_rad, long **pixels_out) {
+    std::vector<int64> listpix;
+    HP(static_cast<int64>(nside), RING, SET_NSIDE)
+        .query_disc(pointing(theta, phi), radius_rad, listpix);
+    return fill_pixel_output(listpix, pixels_out);
+}
+
+long query_disc_nest(long nside, double theta, double phi,
+                     double radius_rad, long **pixels_out) {
+    std::vector<int64> listpix;
+    HP(static_cast<int64>(nside), NEST, SET_NSIDE)
+        .query_disc(pointing(theta, phi), radius_rad, listpix);
+    return fill_pixel_output(listpix, pixels_out);
+}
+
+long query_disc_inclusive_ring(long nside, double theta, double phi,
+                                double radius_rad, long **pixels_out) {
+    std::vector<int64> listpix;
+    HP(static_cast<int64>(nside), RING, SET_NSIDE)
+        .query_disc_inclusive(pointing(theta, phi), radius_rad, listpix);
+    return fill_pixel_output(listpix, pixels_out);
+}
+
+long query_disc_inclusive_nest(long nside, double theta, double phi,
+                                double radius_rad, long **pixels_out) {
+    std::vector<int64> listpix;
+    HP(static_cast<int64>(nside), NEST, SET_NSIDE)
+        .query_disc_inclusive(pointing(theta, phi), radius_rad, listpix);
+    return fill_pixel_output(listpix, pixels_out);
+}
+
+void healpix_free_pixels(long *pixels) {
+    free(pixels);
+}
+
+double healpix_max_pixrad(long nside) {
+    return HP(static_cast<int64>(nside), RING, SET_NSIDE).max_pixrad();
 }
 
 } // extern "C"
