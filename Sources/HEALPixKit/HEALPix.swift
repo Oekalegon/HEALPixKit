@@ -1,4 +1,4 @@
-internal import CHEALPix
+import CHEALPix
 
 // MARK: - HEALPix
 
