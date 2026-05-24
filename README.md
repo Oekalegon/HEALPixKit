@@ -191,4 +191,4 @@ let candidates = pixels.flatMap { catalog[$0] ?? [] }
 
 ## License
 
-HEALPixKit's Swift wrapper is MIT licensed. The vendored healpix_cxx C++ sources (`Sources/CHEALPix/`) are licensed under the GNU General Public License v2 or later (GPL-2+). See the [HEALPix project](https://healpix.sourceforge.io) for details.
+Both HEALPixKit's Swift wrapper and the vendored healpix_cxx C++ sources (`Sources/CHEALPix/`) are licensed under the GNU General Public License v2 or later (GPL-2+). See the [HEALPix project](https://healpix.sourceforge.io) for details.
